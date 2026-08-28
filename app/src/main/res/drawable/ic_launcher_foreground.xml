@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Center AI Eye / Sonar Beacon Symbol -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,34 C40,34 28.5,42.5 24,54 C28.5,65.5 40,74 54,74 C68,74 79.5,65.5 84,54 C79.5,42.5 68,34 54,34 Z M54,67 C46.82,67 41,61.18 41,54 C41,46.82 46.82,41 54,41 C61.18,41 67,46.82 67,54 C67,61.18 61.18,67 54,67 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,47 C50.13,47 47,50.13 47,54 C47,57.87 50.13,61 54,61 C57.87,61 61,57.87 61,54 C61,50.13 57.87,47 54,47 Z" />
+    <!-- Pulse Waves Top and Bottom -->
+    <path
+        android:strokeColor="#FBBF24"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M42,26 C49.5,23 58.5,23 66,26" />
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M35,20 C47,15 61,15 73,20" />
+    <!-- Path guidance line -->
+    <path
+        android:strokeColor="#34D399"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,78 L54,88" />
+</vector>

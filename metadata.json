@@ -1,0 +1,6 @@
+{
+  "name": "NETRASAHYOG",
+  "description": "Real-time AI-powered assistive navigation and obstacle detection system for visually impaired persons with offline Pune pedestrian routing and Gemini multimodal vision.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

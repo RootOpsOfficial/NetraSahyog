@@ -250,10 +250,17 @@ class VoiceRecognitionEngine(
             return ParsedVoiceCommand(VoiceIntentType.WHERE_AM_I, text, currentLanguage)
         }
 
-        // 12. Navigation to POI / Location
-        if (lower.contains("navigate to") || lower.contains("take me to") || lower.contains("directions to") ||
-            lower.contains("ले चलो") || lower.contains("रास्ता दिखाओ") || lower.contains("मार्ग दाखवा") ||
-            lower.contains("जाना है") || lower.contains("जायचे आहे")) {
+        // 12. Navigation to POI / Location / Directions / Set Direction from current location to anywhere
+        if (lower.contains("navigate") || lower.contains("navigation") || lower.contains("take me to") || lower.contains("take me") ||
+            lower.contains("directions to") || lower.contains("direction to") || lower.contains("directions from") ||
+            lower.contains("direction from") || lower.contains("set direction") || lower.contains("set directions") ||
+            lower.contains("route to") || lower.contains("path to") || lower.contains("way to") ||
+            lower.contains("tell me direction") || lower.contains("tell me directions") ||
+            lower.contains("show me direction") || lower.contains("show me directions") ||
+            lower.contains("how to reach") || lower.contains("how do i go to") || lower.contains("how do i reach") ||
+            lower.contains("go to") || lower.contains("walk to") || lower.contains("get to") ||
+            lower.contains("ले चलो") || lower.contains("रास्ता दिखाओ") || lower.contains("दिशा बताओ") || lower.contains("मार्ग दाखवा") ||
+            lower.contains("दिशा दाखवा") || lower.contains("जाना है") || lower.contains("जायचे आहे") || lower.contains("रस्ता दाखव")) {
 
             val targetCategory = when {
                 lower.contains("pharmacy") || lower.contains("medical") || lower.contains("medicine") || lower.contains("दवा") || lower.contains("औषध") -> PoiCategory.PHARMACY
@@ -266,15 +273,76 @@ class VoiceRecognitionEngine(
                 else -> PoiCategory.GENERAL
             }
 
-            // Extract target name (e.g., "take me to Fergusson College" -> "Fergusson College")
+            // Extract target destination cleanly
             var destinationQuery = text
-            val triggerWords = listOf("navigate to", "take me to", "directions to", "route to", "ले चलो", "रास्ता दिखाओ", "मार्ग दाखवा")
+            val triggerWords = listOf(
+                "set direction from my current location to",
+                "set directions from my current location to",
+                "set direction from current location to",
+                "set directions from current location to",
+                "set direction from current to",
+                "set directions from current to",
+                "set direction to",
+                "set directions to",
+                "set direction",
+                "set directions",
+                "start navigation to",
+                "start directions to",
+                "start navigation",
+                "tell me direction from my current location to",
+                "tell me directions from my current location to",
+                "tell me direction from current location to",
+                "tell me directions from current location to",
+                "tell me direction from current to",
+                "tell me directions from current to",
+                "tell me direction to",
+                "tell me directions to",
+                "direction from my current location to",
+                "directions from my current location to",
+                "direction from current location to",
+                "directions from current location to",
+                "direction from current to",
+                "directions from current to",
+                "directions to",
+                "direction to",
+                "navigate to",
+                "navigate",
+                "take me to",
+                "take me",
+                "route to",
+                "path to",
+                "way to",
+                "how to reach",
+                "how do i go to",
+                "how do i reach",
+                "go to",
+                "walk to",
+                "get to",
+                "मला घेऊन चल",
+                "मला घेऊन जा",
+                "चा रस्ता दाखवा",
+                "चा रस्ता दाखव",
+                "ला जायचे आहे",
+                "ला जायचं आहे",
+                "रास्ता दिखाओ",
+                "दिशा बताओ",
+                "मार्ग दाखवा",
+                "दिशा दाखवा",
+                "ले चलो",
+                "जाना है"
+            )
             for (word in triggerWords) {
                 if (lower.contains(word)) {
                     val index = lower.indexOf(word) + word.length
                     destinationQuery = text.substring(index).trim()
                     break
                 }
+            }
+
+            // Clean leading/trailing prepositions or punctuation
+            destinationQuery = destinationQuery.trim(' ', '.', '?', ',', '!', ':', '-')
+            if (destinationQuery.startsWith("to ", ignoreCase = true)) {
+                destinationQuery = destinationQuery.substring(3).trim()
             }
 
             return ParsedVoiceCommand(

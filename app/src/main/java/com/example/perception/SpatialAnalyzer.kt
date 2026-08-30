@@ -135,11 +135,16 @@ object SpatialAnalyzer {
         return Pair(bucket, estimatedMeters)
     }
 
-    fun mapRawLabelToType(label: String, confidence: Float): ObstacleType {
+    fun mapRawLabelToType(label: String, confidence: Float, box: RectF? = null): ObstacleType {
         val lower = label.lowercase().trim()
-        return when {
+        val detected = when {
+            lower.contains("door") || lower.contains("doorway") || lower.contains("gate") || lower.contains("entrance") -> ObstacleType.DOOR
             lower.contains("person") || lower.contains("human") || lower.contains("pedestrian") || lower.contains("man") || lower.contains("woman") || lower.contains("child") -> ObstacleType.PERSON
-            lower.contains("dog") || lower.contains("puppy") || lower.contains("canine") -> ObstacleType.DOG
+            lower.contains("table") || lower.contains("desk") || lower.contains("dining table") -> ObstacleType.TABLE
+            lower.contains("chair") || lower.contains("armchair") || lower.contains("stool") -> ObstacleType.CHAIR
+            lower.contains("couch") || lower.contains("sofa") -> ObstacleType.SOFA
+            lower.contains("bench") -> ObstacleType.BENCH
+            lower.contains("dog") || lower.contains("puppy") || lower.contains("canine") || lower.contains("animal") -> ObstacleType.DOG
             lower.contains("cat") || lower.contains("kitten") || lower.contains("feline") -> ObstacleType.CAT
             lower.contains("bird") -> ObstacleType.BIRD
             lower.contains("motorcycle") || lower.contains("motorbike") || lower.contains("scooter") || lower.contains("moped") -> ObstacleType.MOTORCYCLE
@@ -148,19 +153,13 @@ object SpatialAnalyzer {
             lower.contains("bus") -> ObstacleType.BUS
             lower.contains("truck") || lower.contains("lorry") || lower.contains("van") -> ObstacleType.TRUCK
             lower.contains("vehicle") -> ObstacleType.VEHICLE
-            lower.contains("chair") || lower.contains("seat") || lower.contains("armchair") -> ObstacleType.CHAIR
-            lower.contains("couch") || lower.contains("sofa") -> ObstacleType.SOFA
-            lower.contains("bench") -> ObstacleType.BENCH
-            lower.contains("table") || lower.contains("dining") -> ObstacleType.TABLE
-            lower.contains("desk") -> ObstacleType.DESK
             lower.contains("bed") -> ObstacleType.BED
-            lower.contains("laptop") || lower.contains("computer") -> ObstacleType.LAPTOP
+            lower.contains("laptop") || lower.contains("computer") || lower.contains("screen") || lower.contains("monitor") -> ObstacleType.LAPTOP
             lower.contains("phone") || lower.contains("mobile") || lower.contains("cell") -> ObstacleType.PHONE
             lower.contains("backpack") || lower.contains("rucksack") -> ObstacleType.BACKPACK
-            lower.contains("bag") || lower.contains("handbag") || lower.contains("suitcase") || lower.contains("luggage") || lower.contains("purse") -> ObstacleType.BAG
+            lower.contains("bag") || lower.contains("handbag") || lower.contains("suitcase") || lower.contains("luggage") || lower.contains("purse") || lower.contains("clothing") || lower.contains("fashion") -> ObstacleType.BAG
             lower.contains("box") || lower.contains("carton") || lower.contains("package") -> ObstacleType.BOX
-            lower.contains("bottle") || lower.contains("cup") || lower.contains("mug") || lower.contains("glass") -> ObstacleType.BOTTLE
-            lower.contains("door") || lower.contains("doorway") || lower.contains("entry") || lower.contains("gate") || lower.contains("entrance") -> ObstacleType.DOOR
+            lower.contains("bottle") || lower.contains("cup") || lower.contains("mug") || lower.contains("glass") || lower.contains("drink") -> ObstacleType.BOTTLE
             lower.contains("window") -> ObstacleType.WINDOW
             lower.contains("stair") || lower.contains("staircase") || lower.contains("stairway") -> ObstacleType.STAIRS
             lower.contains("step") -> ObstacleType.STEPS
@@ -168,7 +167,7 @@ object SpatialAnalyzer {
             lower.contains("traffic light") || lower.contains("traffic signal") || lower.contains("signal") -> ObstacleType.TRAFFIC_LIGHT
             lower.contains("stop sign") -> ObstacleType.STOP_SIGN
             lower.contains("sign") || lower.contains("signboard") || lower.contains("billboard") || lower.contains("notice") -> ObstacleType.SIGN
-            lower.contains("pole") || lower.contains("pillar") || lower.contains("post") || lower.contains("column") || lower.contains("lamp") -> ObstacleType.POLE
+            lower.contains("pole") || lower.contains("pillar") || lower.contains("post") || lower.contains("column") || lower.contains("lamp") || lower.contains("tree") -> ObstacleType.POLE
             lower.contains("fence") || lower.contains("railing") || lower.contains("guardrail") -> ObstacleType.FENCE
             lower.contains("wall") -> ObstacleType.WALL
             lower.contains("curb") || lower.contains("kerb") -> ObstacleType.CURB
@@ -176,6 +175,12 @@ object SpatialAnalyzer {
             lower.contains("barrier") || lower.contains("block") -> ObstacleType.LARGE_OBSTRUCTION
             else -> ObstacleType.UNKNOWN_OBSTACLE
         }
+
+        if (detected != ObstacleType.UNKNOWN_OBSTACLE) return detected
+
+        // Do not guess specific objects like chair or wall from aspect ratios alone.
+        // Return UNKNOWN_OBSTACLE so it is described cleanly as a general obstacle.
+        return ObstacleType.UNKNOWN_OBSTACLE
     }
 
     fun analyzeWalkingCorridor(

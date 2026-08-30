@@ -74,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AppLanguage
+import com.example.model.NavigationProviderType
 import com.example.model.NavigationStatus
 import com.example.model.PoiCategory
 import com.example.model.PoiItem
@@ -117,15 +118,19 @@ fun PuneNavigationScreen(
         val lat = userLoc?.latitude ?: 18.52043
         val lon = userLoc?.longitude ?: 73.84365
 
-        val all = viewModel.navigationManager.getAllAvailablePois()
-        poisList = all.filter { poi ->
-            val matchesCategory = selectedCategory == null || poi.category == selectedCategory
-            val matchesSearch = searchQuery.isBlank() ||
-                    poi.name.contains(searchQuery, ignoreCase = true) ||
-                    poi.nameHi.contains(searchQuery, ignoreCase = true) ||
-                    poi.nameMr.contains(searchQuery, ignoreCase = true) ||
-                    poi.address.contains(searchQuery, ignoreCase = true)
-            matchesCategory && matchesSearch
+        if (searchQuery.trim().length >= 2) {
+            val searched = viewModel.navigationManager.searchDestinations(searchQuery.trim(), lat, lon)
+            poisList = if (selectedCategory == null) {
+                searched
+            } else {
+                searched.filter { it.category == selectedCategory }
+            }
+        } else {
+            val all = viewModel.navigationManager.getAllAvailablePois()
+            poisList = all.filter { poi ->
+                val matchesCategory = selectedCategory == null || poi.category == selectedCategory
+                matchesCategory
+            }
         }
     }
 
@@ -163,13 +168,13 @@ fun PuneNavigationScreen(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Anchor: FC Road, Pune (Offline OSM)",
+                        text = if (navState.providerType == NavigationProviderType.GOOGLE_MAPS_LIVE) "Google Maps Live Walk Navigation" else "Anchor: FC Road, Pune (Pedestrian)",
                         color = TextPrimary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Facing ${sensorState.cardinalDirection} (${sensorState.azimuthHeadingDegrees.toInt()}°)  •  ${sensorState.stepCount} Steps",
+                        text = "Facing ${sensorState.cardinalDirection} (${sensorState.azimuthHeadingDegrees.toInt()}°)  •  ${sensorState.stepCount} Steps  •  ${if (navState.providerType == NavigationProviderType.GOOGLE_MAPS_LIVE) "Online GMaps API" else "OSM Offline"}",
                         color = TextSecondary,
                         fontSize = 13.sp
                     )
@@ -300,9 +305,9 @@ fun PuneNavigationScreen(
 
             Text(
                 text = when (language) {
-                    AppLanguage.HINDI -> "ऑफलाइन गंतव्य चुनें (${poisList.size} उपलब्ध)"
-                    AppLanguage.MARATHI -> "ऑफलाइन गंतव्य निवडा (${poisList.size} उपलब्ध)"
-                    AppLanguage.ENGLISH -> "Pedestrian Destinations (${poisList.size} Available)"
+                    AppLanguage.HINDI -> "गंतव्य चुनें (${poisList.size} उपलब्ध)"
+                    AppLanguage.MARATHI -> "गंतव्य निवडा (${poisList.size} उपलब्ध)"
+                    AppLanguage.ENGLISH -> "Destinations (${poisList.size} Available)"
                 },
                 color = TextPrimary,
                 fontSize = 16.sp,

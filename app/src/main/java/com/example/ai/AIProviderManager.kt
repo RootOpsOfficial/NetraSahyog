@@ -14,7 +14,7 @@ class AIProviderManager {
     private val geminiAssistant = GeminiVisionAssistant()
     private val ocrEngine = OcrReadingEngine()
 
-    private val _currentProvider = MutableStateFlow(AIProviderType.OFFLINE_LOCAL)
+    private val _currentProvider = MutableStateFlow(AIProviderType.GEMINI_LIVE_FLASH)
     val currentProvider: StateFlow<AIProviderType> = _currentProvider.asStateFlow()
 
     fun setProvider(provider: AIProviderType) {
@@ -28,17 +28,7 @@ class AIProviderManager {
         obstacles: List<TrackedObstacle>,
         pathAnalysis: WalkablePathAnalysis
     ): String {
-        return when (_currentProvider.value) {
-            AIProviderType.OFFLINE_LOCAL -> {
-                geminiAssistant.queryMultimodalVision(null, prompt, language, obstacles, pathAnalysis)
-            }
-            AIProviderType.GEMINI_LIVE_FLASH -> {
-                geminiAssistant.queryMultimodalVision(bitmap, prompt, language, obstacles, pathAnalysis)
-            }
-            AIProviderType.OPENROUTER_FALLBACK, AIProviderType.TEAMO_FALLBACK -> {
-                geminiAssistant.queryMultimodalVision(bitmap, prompt, language, obstacles, pathAnalysis)
-            }
-        }
+        return geminiAssistant.queryMultimodalVision(bitmap, prompt, language, obstacles, pathAnalysis)
     }
 
     suspend fun readOcrText(bitmap: Bitmap?, language: AppLanguage): String {

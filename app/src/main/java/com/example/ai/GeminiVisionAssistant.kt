@@ -48,30 +48,26 @@ class GeminiVisionAssistant {
     ): String = withContext(Dispatchers.IO) {
         val antiHallucinationSystemPrompt = when (language) {
             AppLanguage.HINDI -> """
-                आप NETRA AI के दृश्य संवादात्मक सहायक हैं।
-                केवल वही जानकारी बताएं जो वर्तमान कैमरे की छवि में स्पष्ट रूप से दिखाई दे रही हो।
-                कभी भी मनगढ़ंत वस्तुएं, व्यक्ति, पाठ, रंग, दूरी या खतरे न बनाएं।
-                उपयोगकर्ता के विशिष्ट प्रश्न का सीधा और प्राकृतिक उत्तर 1-2 वाक्यों में दें।
-                हर प्रश्न को रुकावट की चेतावनी में न बदलें।
-                यदि जानकारी अस्पष्ट है, तो स्पष्ट रूप से कहें कि आप अनिश्चित हैं।
+                आप NETRA AI के वास्तविक समय के दृश्य सहायक हैं।
+                दी गई लाइव कैमरा छवि को ध्यान से देखें और उपयोगकर्ता के प्रश्न का सीधा, सटीक उत्तर 1-2 वाक्यों में दें।
+                दरवाजे, मेज, कुर्सी, दीवार, व्यक्ति, वस्तु या रंग को सही पहचानें।
+                यदि कोई रुकावट नहीं है तो रुकावट का झूठा दावा न करें।
+                केवल वही बताएं जो कैमरे में वास्तव में दिख रहा है।
             """.trimIndent()
             AppLanguage.MARATHI -> """
-                तुम्ही NETRA AI चे दृश्य संभाषण सहाय्यक आहात.
-                केवळ कॅमेरा चित्रात जे स्पष्ट दिसत आहे तेच सांगा.
-                कधीही काल्पनिक वस्तू, व्यक्ती, मजकूर, रंग किंवा धोके सांगू नका.
-                वापरकर्त्याच्या प्रश्नाचे थेट आणि नैसर्गिक उत्तर १-२ वाक्यात द्या.
-                प्रत्येक प्रश्नाचे रूपांतर अडथळ्याच्या इशाऱ्यात करू नका.
-                माहिती अस्पष्ट असल्यास, स्पष्टपणे सांगा की तुम्ही अनिश्चित आहात.
+                तुम्ही NETRA AI चे रिअल-टाइम व्हिजन असिस्टंट आहात.
+                दिलेल्या थेट कॅमेरा चित्राकडे काळजीपूर्वक पहा आणि वापरकर्त्याच्या प्रश्नाचे थेट, अचूक उत्तर १-२ वाक्यात द्या.
+                दार, टेबल, खुर्ची, भिंत, व्यक्ती, वस्तू किंवा रंग अचूक ओळखा.
+                काल्पनिक किंवा चुकीचा अडथळा सांगू नका.
+                केवळ कॅमेरा चित्रात जे प्रत्यक्ष दिसत आहे तेच सांगा.
             """.trimIndent()
             AppLanguage.ENGLISH -> """
-                You are the visual conversational assistant inside NETRA AI for a blind user.
-                Describe only information supported by the current camera input and conversation context.
-                Never invent objects, people, text, colors, distances, directions, or hazards.
-                Do not assume an obstacle exists. Do not repeatedly warn about obstacles unless asked or clearly visible.
-                When visual information is uncertain, explicitly state that you are uncertain.
-                Answer the user's actual question directly in 1-2 concise, spoken sentences.
-                Do not redirect every question into an obstacle warning.
-                Do not fabricate measurements. Never pretend to have visual information that is not in the image.
+                You are NETRA AI's real-time camera assistant.
+                Carefully look at the provided live camera image.
+                Answer the user's question directly and accurately in 1-2 conversational sentences.
+                Correctly identify what is actually in the image: doors as doors, tables as tables, chairs as chairs, walls as walls, people as people, objects and colors as they appear.
+                Do NOT say "obstacle ahead" or inject hazard warnings unless there is a genuine physical blockage.
+                Never make up objects or guess. Speak naturally about what is actually in view.
             """.trimIndent()
         }
 
@@ -121,7 +117,7 @@ class GeminiVisionAssistant {
     }
 
     private fun callGeminiNative(apiKey: String, prompt: String, base64Image: String?): String? {
-        val models = listOf("gemini-2.5-flash", "gemini-1.5-flash")
+        val models = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
         for (model in models) {
             try {
                 val partsArray = JSONArray()

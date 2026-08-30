@@ -116,6 +116,7 @@ fun MainAssistanceScreen(
     val isListening by viewModel.isListeningForVoice.collectAsState()
     val liveTranscript by viewModel.liveVoiceTranscript.collectAsState()
     val isThinking by viewModel.isAiThinking.collectAsState()
+    val activeTab by viewModel.activeTab.collectAsState()
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
 
@@ -191,21 +192,25 @@ fun MainAssistanceScreen(
                             }
                         }
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "NETRASAHYOG",
-                                    fontSize = 17.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary,
-                                    letterSpacing = 0.5.sp
+                                    letterSpacing = 0.3.sp,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                             Text(
                                 text = if (pagerState.currentPage == 0) "Offline Vision Mode" else "Gemini Live Assistant",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 color = LavenderPrimary,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -293,7 +298,7 @@ fun MainAssistanceScreen(
             )
         },
         bottomBar = {
-            // Mode Selector Bar (Swipeable Pager Sync)
+            // Mode Selector Bar (Swipeable Pager Sync & OSM Navigation Tab)
             Surface(
                 color = NaturalBackground,
                 modifier = Modifier
@@ -303,18 +308,19 @@ fun MainAssistanceScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Tab 0: Offline Vision
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = if (pagerState.currentPage == 0) LavenderPrimary else NaturalSurfaceElevated,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (pagerState.currentPage == 0) LavenderPrimary else NaturalBorder),
+                        color = if (activeTab == AppTab.VISION && pagerState.currentPage == 0) LavenderPrimary else NaturalSurfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (activeTab == AppTab.VISION && pagerState.currentPage == 0) LavenderPrimary else NaturalBorder),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
                             .clickable {
+                                viewModel.setTab(AppTab.VISION)
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(0)
                                 }
@@ -324,19 +330,19 @@ fun MainAssistanceScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Visibility,
                                 contentDescription = "Offline Vision",
-                                tint = if (pagerState.currentPage == 0) DeepVioletOnPrimary else TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                                tint = if (activeTab == AppTab.VISION && pagerState.currentPage == 0) DeepVioletOnPrimary else TextSecondary,
+                                modifier = Modifier.size(17.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Offline Vision",
-                                color = if (pagerState.currentPage == 0) DeepVioletOnPrimary else TextPrimary,
-                                fontSize = 13.sp,
+                                text = "Vision",
+                                color = if (activeTab == AppTab.VISION && pagerState.currentPage == 0) DeepVioletOnPrimary else TextPrimary,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -345,12 +351,13 @@ fun MainAssistanceScreen(
                     // Tab 1: NETRA AI Gemini Live
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = if (pagerState.currentPage == 1) LavenderPrimary else NaturalSurfaceElevated,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (pagerState.currentPage == 1) LavenderPrimary else NaturalBorder),
+                        color = if (activeTab == AppTab.GEMINI_LIVE || (activeTab == AppTab.VISION && pagerState.currentPage == 1)) LavenderPrimary else NaturalSurfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (activeTab == AppTab.GEMINI_LIVE || (activeTab == AppTab.VISION && pagerState.currentPage == 1)) LavenderPrimary else NaturalBorder),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
                             .clickable {
+                                viewModel.setTab(AppTab.GEMINI_LIVE)
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(1)
                                 }
@@ -360,19 +367,53 @@ fun MainAssistanceScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SmartToy,
                                 contentDescription = "NETRA AI Live",
-                                tint = if (pagerState.currentPage == 1) DeepVioletOnPrimary else TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                                tint = if (activeTab == AppTab.GEMINI_LIVE || (activeTab == AppTab.VISION && pagerState.currentPage == 1)) DeepVioletOnPrimary else TextSecondary,
+                                modifier = Modifier.size(17.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "NETRA AI Live",
-                                color = if (pagerState.currentPage == 1) DeepVioletOnPrimary else TextPrimary,
-                                fontSize = 13.sp,
+                                text = "NETRA AI",
+                                color = if (activeTab == AppTab.GEMINI_LIVE || (activeTab == AppTab.VISION && pagerState.currentPage == 1)) DeepVioletOnPrimary else TextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Tab 2: OSM Maps Navigation
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (activeTab == AppTab.NAVIGATION) LavenderPrimary else NaturalSurfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (activeTab == AppTab.NAVIGATION) LavenderPrimary else NaturalBorder),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clickable {
+                                viewModel.setTab(AppTab.NAVIGATION)
+                            }
+                            .testTag("tab_navigation_osm")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Navigation,
+                                contentDescription = "OSM Navigation",
+                                tint = if (activeTab == AppTab.NAVIGATION) DeepVioletOnPrimary else TextSecondary,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Maps",
+                                color = if (activeTab == AppTab.NAVIGATION) DeepVioletOnPrimary else TextPrimary,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -455,78 +496,83 @@ fun MainAssistanceScreen(
                     }
                 }
             } else {
-                // SINGLE SHARED CAMERA PREVIEW AT BASE
-                CameraPreviewView(
-                    perceptionEngine = viewModel.perceptionEngine,
-                    onBitmapUpdated = { bmp -> viewModel.updateCameraFrameBitmap(bmp) },
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (activeTab == AppTab.NAVIGATION) {
+                    // Full Screen Pune OSM Navigation Screen
+                    PuneNavigationScreen(viewModel = viewModel)
+                } else {
+                    // SINGLE SHARED CAMERA PREVIEW AT BASE
+                    CameraPreviewView(
+                        perceptionEngine = viewModel.perceptionEngine,
+                        onBitmapUpdated = { bmp -> viewModel.updateCameraFrameBitmap(bmp) },
+                        modifier = Modifier.fillMaxSize()
+                    )
 
-                // SWIPEABLE PAGER FOR MODE SWITCHING
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> VisionHudScreen(viewModel = viewModel)
-                        1 -> GeminiLiveScreen(viewModel = viewModel)
+                    // SWIPEABLE PAGER FOR MODE SWITCHING
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        when (page) {
+                            0 -> VisionHudScreen(viewModel = viewModel)
+                            1 -> GeminiLiveScreen(viewModel = viewModel)
+                        }
                     }
-                }
 
-                // REAL-TIME VOICE INPUT OVERLAY AT BOTTOM (for Offline Vision mode)
-                AnimatedVisibility(
-                    visible = pagerState.currentPage == 0 && (isListening || liveTranscript.isNotBlank() || isThinking),
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = NaturalSurfaceElevated.copy(alpha = 0.98f),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LavenderPrimary),
-                        shadowElevation = 8.dp,
+                    // REAL-TIME VOICE INPUT OVERLAY AT BOTTOM (for Offline Vision mode)
+                    AnimatedVisibility(
+                        visible = pagerState.currentPage == 0 && (isListening || liveTranscript.isNotBlank() || isThinking),
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("voice_live_transcript_overlay")
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = NaturalSurfaceElevated.copy(alpha = 0.98f),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, LavenderPrimary),
+                            shadowElevation = 8.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("voice_live_transcript_overlay")
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isListening) CoralAlert else LavenderPrimary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (isListening) Icons.Default.GraphicEq else Icons.Default.AutoAwesome,
-                                    contentDescription = "Voice Active",
-                                    tint = if (isListening) DeepAlertRed else DeepVioletOnPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isListening) CoralAlert else LavenderPrimary)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isListening) Icons.Default.GraphicEq else Icons.Default.AutoAwesome,
+                                        contentDescription = "Voice Active",
+                                        tint = if (isListening) DeepAlertRed else DeepVioletOnPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
 
-                            Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (isListening) "LISTENING TO YOU..." else if (isThinking) "NETRA AI THINKING..." else "HEARD SPEECH",
-                                    color = LavenderPrimary,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp
-                                )
-                                Text(
-                                    text = if (liveTranscript.isNotBlank()) liveTranscript else if (isListening) "Speak your question or destination..." else "Processing...",
-                                    color = TextPrimary,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 2
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (isListening) "LISTENING TO YOU..." else if (isThinking) "NETRA AI THINKING..." else "HEARD SPEECH",
+                                        color = LavenderPrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Text(
+                                        text = if (liveTranscript.isNotBlank()) liveTranscript else if (isListening) "Speak your question or destination..." else "Processing...",
+                                        color = TextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2
+                                    )
+                                }
                             }
                         }
                     }

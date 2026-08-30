@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AppLanguage
+import com.example.model.NavigationProviderType
 import com.example.model.NavigationStatus
 import com.example.model.ObstaclePriority
 import com.example.model.ObstacleType
@@ -156,7 +157,7 @@ fun VisionHudScreen(
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "OSM Path",
+                                text = if (navState.providerType == NavigationProviderType.GOOGLE_MAPS_LIVE) "Live GMaps" else "Footpath",
                                 color = LavenderPrimary,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -178,8 +179,8 @@ fun VisionHudScreen(
 
                     val activePoi = navState.currentDestination ?: PuneOsmDataset.PUNE_POIS[selectedPoiIndex]
                     val poiName = when (language) {
-                        AppLanguage.HINDI -> activePoi.nameHi
-                        AppLanguage.MARATHI -> activePoi.nameMr
+                        AppLanguage.HINDI -> if (activePoi.nameHi.isNotBlank()) activePoi.nameHi else activePoi.name
+                        AppLanguage.MARATHI -> if (activePoi.nameMr.isNotBlank()) activePoi.nameMr else activePoi.name
                         AppLanguage.ENGLISH -> activePoi.name
                     }
 
@@ -198,7 +199,7 @@ fun VisionHudScreen(
                     }
 
                     Text(
-                        text = "$remainingDist • FC Rd Walkway",
+                        text = "$remainingDist • Walking Route",
                         color = TextSecondary,
                         fontSize = 9.sp,
                         maxLines = 1
@@ -206,10 +207,11 @@ fun VisionHudScreen(
 
                     if (navState.status == NavigationStatus.NAVIGATING && navState.currentStep != null) {
                         val step = navState.currentStep
-                        val stepGuide = when (language) {
-                            AppLanguage.HINDI -> step?.instruction?.spokenHi
-                            AppLanguage.MARATHI -> step?.instruction?.spokenMr
-                            AppLanguage.ENGLISH -> step?.instruction?.spokenEn
+                        val stepGuide = when {
+                            step?.instructionText?.isNotBlank() == true -> step.instructionText
+                            language == AppLanguage.HINDI -> step?.instruction?.spokenHi
+                            language == AppLanguage.MARATHI -> step?.instruction?.spokenMr
+                            else -> step?.instruction?.spokenEn
                         } ?: "Follow footpath"
 
                         Text(

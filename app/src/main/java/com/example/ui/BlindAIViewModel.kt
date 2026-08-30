@@ -173,6 +173,11 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
+        // Live camera bitmap receiver for real-time multimodal Gemini & OCR
+        perceptionEngine.onFrameBitmapAvailable = { bmp ->
+            latestCapturedBitmap = bmp
+        }
+
         // Observe real GPS location updates
         viewModelScope.launch {
             locationServiceManager.currentLocation.collect { realLoc ->
@@ -212,9 +217,10 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
                 )
                 _movementGuidance.value = guidance
 
-                // 3. Normal obstacle safety priority alert
+                // 3. Normal obstacle safety priority alert (Only in standard vision mode, NOT during Gemini Live or active Live Mic)
+                val isLiveMode = _currentModeIndex.value == 1 || _activeTab.value == AppTab.GEMINI_LIVE || _isLiveMicEnabled.value
                 val critical = output.mostCriticalObstacle
-                if (critical != null && !isFacingDown && !isVoiceActive) {
+                if (critical != null && !isFacingDown && !isVoiceActive && !isLiveMode) {
                     val alertText = perceptionEngine.priorityEngine.shouldAlert(
                         obstacle = critical,
                         language = _appLanguage.value,
@@ -249,7 +255,7 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
                 voiceRecognitionEngine.setContinuousMode(true, _appLanguage.value)
             }
         } else {
-            aiProviderManager.setProvider(AIProviderType.OFFLINE_LOCAL)
+            aiProviderManager.setProvider(AIProviderType.GEMINI_LIVE_FLASH)
             _activeTab.value = AppTab.VISION
             voiceRecognitionEngine.setContinuousMode(false)
         }
@@ -364,28 +370,8 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
                     announceLocationAndHeading()
                 }
                 VoiceIntentType.NAVIGATE_TO_POI, VoiceIntentType.FIND_NEAREST_POI -> {
-                    val query = command.searchQuery?.lowercase() ?: ""
-                    val currentLoc = locationServiceManager.currentLocation.value
-                    val startLat = currentLoc?.latitude ?: 18.52043
-                    val startLon = currentLoc?.longitude ?: 73.84365
-
-                    val searchResults = puneRouteStorage.searchPois(query, startLat, startLon)
-                    val targetPoi = if (searchResults.isNotEmpty()) {
-                        searchResults.first()
-                    } else if (command.targetPoiCategory != null && command.targetPoiCategory != PoiCategory.GENERAL) {
-                        puneRouteStorage.getAllPois().find { it.category == command.targetPoiCategory } ?: puneRouteStorage.getAllPois().firstOrNull()
-                    } else {
-                        puneRouteStorage.getAllPois().find {
-                            it.name.lowercase().contains(query) ||
-                            it.nameHi.lowercase().contains(query) ||
-                            it.nameMr.lowercase().contains(query)
-                        } ?: puneRouteStorage.getAllPois().firstOrNull()
-                    }
-
-                    if (targetPoi != null) {
-                        _activeTab.value = AppTab.NAVIGATION
-                        navigationManager.startNavigation(targetPoi, startLat, startLon, _appLanguage.value)
-                    }
+                    val query = command.searchQuery?.trim() ?: ""
+                    startVoiceNavigation(query, command.targetPoiCategory)
                 }
                 VoiceIntentType.STOP_NAVIGATION -> {
                     navigationManager.stopNavigation(_appLanguage.value)
@@ -435,6 +421,52 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
         _aiResponseText.value = initialResponse
         voiceAlertManager.speak(initialResponse, forceInterrupt = true)
         hapticFeedbackManager.playListeningStopChime()
+    }
+
+    fun startVoiceNavigation(destinationQuery: String, category: PoiCategory? = null) {
+        viewModelScope.launch {
+            val cleanQuery = destinationQuery.trim().ifBlank { "Destination" }
+            _liveVoiceTranscript.value = "Directions to: $cleanQuery"
+            val currentLoc = locationServiceManager.currentLocation.value
+            val startLat = currentLoc?.latitude ?: 18.52043
+            val startLon = currentLoc?.longitude ?: 73.84365
+
+            val prepMsg = when (_appLanguage.value) {
+                AppLanguage.HINDI -> "गूगल मैप्स द्वारा $cleanQuery का रास्ता खोजा जा रहा है..."
+                AppLanguage.MARATHI -> "गूगल मॅप्सद्वारे $cleanQuery चा मार्ग शोधत आहे..."
+                AppLanguage.ENGLISH -> "Setting walking directions to $cleanQuery via Google Maps..."
+            }
+            voiceAlertManager.speak(prepMsg, forceInterrupt = true)
+
+            // Search real destination via Google Maps Geocoding & Local POIs
+            val searchResults = navigationManager.searchDestinations(cleanQuery, startLat, startLon)
+            val targetPoi = if (searchResults.isNotEmpty()) {
+                searchResults.first()
+            } else if (category != null && category != PoiCategory.GENERAL) {
+                puneRouteStorage.getAllPois().find { it.category == category } ?: puneRouteStorage.getAllPois().firstOrNull()
+            } else {
+                puneRouteStorage.getAllPois().find {
+                    it.name.contains(cleanQuery, ignoreCase = true) ||
+                    it.nameHi.contains(cleanQuery, ignoreCase = true) ||
+                    it.nameMr.contains(cleanQuery, ignoreCase = true) ||
+                    cleanQuery.contains(it.name, ignoreCase = true)
+                } ?: PoiItem(
+                    id = "gmap_poi_voice_${System.currentTimeMillis()}",
+                    name = cleanQuery.replaceFirstChar { it.uppercase() },
+                    nameHi = cleanQuery,
+                    nameMr = cleanQuery,
+                    category = category ?: PoiCategory.GENERAL,
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    address = cleanQuery
+                )
+            }
+
+            if (targetPoi != null) {
+                _activeTab.value = AppTab.NAVIGATION
+                navigationManager.startNavigation(targetPoi, startLat, startLon, _appLanguage.value)
+            }
+        }
     }
 
     fun stopTargetGuidance() {
@@ -569,7 +601,8 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
             }
             voiceAlertManager.speak(speakPrep, ObstaclePriority.INFO)
 
-            val text = aiProviderManager.readOcrText(latestCapturedBitmap, _appLanguage.value)
+            val currentBitmap = latestCapturedBitmap ?: perceptionEngine.latestBitmap
+            val text = aiProviderManager.readOcrText(currentBitmap, _appLanguage.value)
             _isAiThinking.value = false
             _aiResponseText.value = text
             voiceAlertManager.speak(text, forceInterrupt = true)
@@ -583,8 +616,10 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
             _liveVoiceTranscript.value = prompt
             val startT = System.currentTimeMillis()
 
+            val currentBitmap = latestCapturedBitmap ?: perceptionEngine.latestBitmap
+
             val response = aiProviderManager.queryVisionScene(
-                bitmap = latestCapturedBitmap,
+                bitmap = currentBitmap,
                 prompt = prompt,
                 language = _appLanguage.value,
                 obstacles = perceptionOutput.value.trackedObstacles,
@@ -646,6 +681,7 @@ class BlindAIViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onCleared() {
         super.onCleared()
+        perceptionEngine.close()
         compassSensorManager.stop()
         locationServiceManager.stopLocationUpdates()
         voiceAlertManager.shutdown()
